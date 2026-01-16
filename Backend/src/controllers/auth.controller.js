@@ -82,3 +82,33 @@ export const logoutUser = asyncHandler(async (req, res,next) => {
   res.clearCookie("jwt");
   return res.status(200).json(new ApiResponse(200,"User logged out successfully"));
 });
+
+export const onBoardUser = asyncHandler(async (req, res,next) => {
+    const userId = req.user._id;
+    const { fullName,bio, nativeLanguage, learningLanguages, location } = req.body;
+    if( !fullName || !bio || !nativeLanguage || !learningLanguages || !location ) {
+        const missingFields = [
+            !fullName && "fullName",
+            !bio && "bio",
+            !nativeLanguage && "nativeLanguage",
+            !learningLanguages && "learningLanguages",
+            !location && "location",
+        ].filter(Boolean);
+        throw new apiError(400, "All fields are required for onboarding", missingFields);
+    }
+    const updatedUser = await User.findByIdAndUpdate(userId, {
+      ...req.body,
+      isOnBoarded: true,
+    }, { new: true });
+
+    if (!updatedUser) {
+        throw new apiError(404, "User not found");
+    }
+    await upsertStreamUser({
+        id: updatedUser._id.toString(),
+        name: updatedUser.fullName,
+        image: updatedUser.profilePic || ""
+    });
+    return res.status(200).json(new ApiResponse(200,"User onboarded successfully", updatedUser));
+
+});
