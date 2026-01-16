@@ -3,6 +3,7 @@ import apiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import User from "../models/User.model.js";
 import jwt from "jsonwebtoken";
+import { upsertStreamUser } from "../lib/stream.js";
 
 export const signupUser = asyncHandler(async (req, res,next) => {
   const { fullName, email, password } = req.body;
@@ -29,6 +30,13 @@ export const signupUser = asyncHandler(async (req, res,next) => {
     password,
     profilePic: randomAvatar,
   });
+
+  await upsertStreamUser({
+    id: newUser._id.toString(),
+    name: newUser.fullName,
+    image: newUser.profilePic || ""
+  });
+
   const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, {
     expiresIn: "7d",
   });
