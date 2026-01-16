@@ -59,3 +59,23 @@ export const sendFriendRequest = asyncHandler(async (req, res, next) => {
     await friendRequest.save();
     return res.status(200).json(new ApiResponse(friendRequest));
 });
+
+export const acceptFriendRequest = asyncHandler(async (req, res, next) => {
+    const { id: requestId } = req.params;
+    const friendRequest = await FriendRequest.findById(requestId);
+    if (!friendRequest) {
+        throw new apiError(404, "Friend request not found");
+    }
+    if (friendRequest.recipient.toString() !== req.user._id.toString()) {
+        throw new apiError(403, "You are not authorized to accept this friend request");
+    }
+    friendRequest.status = "accepted";
+    await friendRequest.save();
+    await User.findByIdAndUpdate(req.user._id, {
+        $addToSet: { friends: friendRequest.sender }
+    });
+    await User.findByIdAndUpdate(friendRequest.sender, {
+        $addToSet: { friends: friendRequest.recipient }
+    });
+    return res.status(200).json(new ApiResponse("Friend request accepted successfully"));
+});
