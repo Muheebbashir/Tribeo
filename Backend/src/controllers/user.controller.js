@@ -2,6 +2,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import apiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import User from "../models/User.model.js";
+import FriendRequest from "../models/FriendRequest.model.js";
 
 export const getRecommendedUsers = asyncHandler(async (req, res, next) => {
   // Logic to get recommended users
@@ -25,4 +26,36 @@ export const getFriendsList = asyncHandler(async (req, res, next) => {
     "fullName profilePic nativeLanguage learningLanguages"
   );
     return res.status(200).json(new ApiResponse(  user.friends ));
+});
+
+export const sendFriendRequest = asyncHandler(async (req, res, next) => {
+    const myId = req.user._id;
+    const { id: friendId } = req.params;
+
+    if (myId.toString() === friendId) {
+        throw new apiError(400, "You cannot send a friend request to yourself");
+    }
+    const friend = await User.findById(friendId);
+    if (!friend) {
+        throw new apiError(404, "User not found");
+    }
+    if (friend.friends.includes(myId)) {
+        throw new apiError(400, "You are already friends with this user");
+    }
+
+    const existingRequest = await FriendRequest.findOne({
+        $or: [
+            { sender: myId, recipient: friendId },
+            { sender: friendId, recipient: myId }
+        ]
+    });
+    if (existingRequest) {
+        throw new apiError(400, "A friend request already exists between you and this user");
+    }
+    const friendRequest = new FriendRequest({
+        sender: myId,
+        recipient: friendId,
+    });
+    await friendRequest.save();
+    return res.status(200).json(new ApiResponse(friendRequest));
 });
