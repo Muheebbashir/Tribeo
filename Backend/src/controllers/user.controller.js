@@ -79,3 +79,23 @@ export const acceptFriendRequest = asyncHandler(async (req, res, next) => {
     });
     return res.status(200).json(new ApiResponse("Friend request accepted successfully"));
 });
+
+export const getFriendRequests = asyncHandler(async (req, res, next) => {
+    const incomingReqs = await FriendRequest.find({
+        recipient: req.user._id,
+        status: "pending"
+    }).populate("sender", "fullName profilePic nativeLanguage learningLanguages");
+    const acceptedReqs = await FriendRequest.find({
+        sender: req.user._id,
+        status: "accepted"
+    }).populate("recipient", "fullName profilePic ");
+    return res.status(200).json(new ApiResponse( incomingReqs, acceptedReqs ));
+});
+
+export const getOutgoingFriendRequests = asyncHandler(async (req, res, next) => {
+    const outgoingReqs = await FriendRequest.find({
+        sender: req.user._id,
+        status: "pending"
+    }).populate("recipient", "fullName profilePic nativeLanguage learningLanguages");
+    return res.status(200).json(new ApiResponse( outgoingReqs ));
+});
