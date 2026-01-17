@@ -22,8 +22,8 @@ export const signupUser = asyncHandler(async (req, res,next) => {
   if (existingUser) {
     throw new apiError(400, "Email is already in use");
   }
-  const index = Math.floor(Math.random() * 100) + 1;
-  const randomAvatar = `https://avatar.iran.liara.run/public/${index}.png`;
+  const index = Math.floor(Math.random() * 1000) + 1;
+  const randomAvatar = `https://i.pravatar.cc/150?u=${index}`;
   const newUser = await User.create({
     fullName,
     email,
