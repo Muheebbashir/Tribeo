@@ -9,7 +9,7 @@ router.route("/login").post(loginUser);
 router.route("/logout").post(logoutUser);
 router.route("/onboarding").post(jwtVerify,onBoardUser);
 router.route("/me").get(jwtVerify, (req, res) => {
-    return res.status(200).json({ user: req.user });
+    return res.status(200).json({ success: true, user: req.user });
 });
 
 export default router;
