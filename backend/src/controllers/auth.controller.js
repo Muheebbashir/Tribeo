@@ -1,14 +1,19 @@
 import { upsertStreamUser } from "../lib/stream.js";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import sendEmail from "../utils/sendemail.js";
 
 export async function signup(req, res) {
-  const { email, password, fullName } = req.body;
+  let { email, password, fullName } = req.body;
 
   try {
     if (!email || !password || !fullName) {
       return res.status(400).json({ message: "All fields are required" });
     }
+
+    // Normalize email to lowercase
+    email = email.toLowerCase().trim();
 
     if (password.length < 6) {
       return res.status(400).json({ message: "Password must be at least 6 characters" });
@@ -25,7 +30,7 @@ export async function signup(req, res) {
       return res.status(400).json({ message: "Email already exists, please use a different one" });
     }
 
-    const idx = Math.floor(Math.random() * 1000) + 1; // generate a num between 1-1000
+    const idx = Math.floor(Math.random() * 50) + 1; // generate a num between 1-50
     const randomAvatar = `https://i.pravatar.cc/150?u=${idx}`;
 
     const newUser = await User.create({
@@ -66,11 +71,14 @@ export async function signup(req, res) {
 
 export async function login(req, res) {
   try {
-    const { email, password } = req.body;
+    let { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
+
+    // Normalize email to lowercase
+    email = email.toLowerCase().trim();
 
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ message: "Invalid email or password" });
@@ -148,3 +156,60 @@ export async function onboard(req, res) {
     res.status(500).json({ message: "Internal Server Error" });
   }
 }
+
+export async function forgotPassword(req, res) {
+  try {
+    let { email } = req.body;
+    // Normalize email to lowercase
+    email = email.toLowerCase().trim();
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User with this email does not exist" });
+    }
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+    user.passwordResetToken = hashedToken;
+    user.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save({ validateBeforeSave: false });
+    const resetURL = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+    await sendEmail({
+      to: user.email,
+      subject: "Password Reset Request",
+      html: `<p>You requested a password reset. Click <a href="${resetURL}">here</a> to reset your password. This link is valid for 10 minutes.</p>`,
+    });
+    res.status(200).json({ message: "Password reset email sent" });
+  } catch (error) {
+    console.error("Forgot Password error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+    
+  }
+}
+
+export async function resetPassword(req, res) {
+  try {
+    const { token } = req.params;
+    const {newPassword} = req.body;
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: Date.now() },
+    });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired password reset token" });
+    }
+    user.password = newPassword;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+    res.status(200).json({ message: "Password has been reset successfully" });
+  } catch (error) {
+    console.error("Reset Password error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+    
+  }
+}
+
+
+
+
+
