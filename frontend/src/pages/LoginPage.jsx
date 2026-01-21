@@ -69,7 +69,7 @@ const LoginPage = () => {
                     </label>
                     <input
                       type="email"
-                      placeholder="john@example.com"
+                      placeholder="john@gmail.com"
                       className="input input-bordered w-full"
                       value={loginData.email}
                       onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
