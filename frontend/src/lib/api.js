@@ -73,3 +73,8 @@ export async function resetPassword(token, newPassword) {
   const response = await axiosInstance.post(`/auth/reset-password/${token}`, { newPassword });
   return response.data;
 }
+
+export async function removeFriend(friendId){
+  const response=await axiosInstance.delete(`/users/friends/${friendId}`);
+  return response.data;
+}

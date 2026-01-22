@@ -1,9 +1,27 @@
 import { Link } from "react-router";
-import { MapPinIcon } from "lucide-react";
+import { MapPinIcon, Trash2 } from "lucide-react";
 import { LANGUAGE_TO_FLAG } from "../constants";
 import { capitialize } from "../lib/utils";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { removeFriend } from "../lib/api";
+import toast from "react-hot-toast";
 
 const FriendCard = ({ friend }) => {
+  const queryClient = useQueryClient();
+  const { mutate: removeFriendMutation, isPending } = useMutation({
+    mutationFn: removeFriend,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["friends"] });
+      queryClient.invalidateQueries({queryKey:["users"]});
+      toast.success("Friend removed succesfully");
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to remove friend");
+    },
+  });
+  const handleRemoveFriend = () => {
+    removeFriendMutation(friend._id);
+  };
   return (
     <div className="card bg-base-200 hover:shadow-lg transition-all duration-300 border border-base-300 shadow-md">
       <div className="card-body p-5 space-y-4">
@@ -41,9 +59,30 @@ const FriendCard = ({ friend }) => {
         {friend.bio && <p className="text-sm opacity-70">{friend.bio}</p>}
 
         {/* Message Button */}
-        <Link to={`/chat/${friend._id}`} className="btn btn-outline w-full mt-2">
+        <Link
+          to={`/chat/${friend._id}`}
+          className="btn btn-outline w-full mt-2"
+        >
           Message
         </Link>
+        {/*Remove Friend button*/}
+        <button
+          className="btn btn-error btn-outline w-full"
+          onClick={handleRemoveFriend}
+          disabled={isPending}
+        >
+          {isPending ? (
+            <>
+              <span className="loading loading-spinner loading-sm"></span>
+              Removing...
+            </>
+          ) : (
+            <>
+              <Trash2 size={16} />
+              Remove Friend
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
