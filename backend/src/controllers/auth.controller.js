@@ -172,12 +172,18 @@ export async function forgotPassword(req, res) {
     user.passwordResetExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save({ validateBeforeSave: false });
     const resetURL = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
-    await sendEmail({
+    
+    // Send response first, then send email in background
+    res.status(200).json({ message: "Password reset email sent" });
+    
+    // Send email without blocking response
+    sendEmail({
       to: user.email,
       subject: "Password Reset Request",
       html: `<p>You requested a password reset. Click <a href="${resetURL}">here</a> to reset your password. This link is valid for 10 minutes.</p>`,
+    }).catch((error) => {
+      console.error("Email sending error:", error);
     });
-    res.status(200).json({ message: "Password reset email sent" });
   } catch (error) {
     console.error("Forgot Password error:", error);
     res.status(500).json({ message: "Internal Server Error" });
