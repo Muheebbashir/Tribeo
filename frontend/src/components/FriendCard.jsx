@@ -13,8 +13,7 @@ const FriendCard = ({ friend }) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["friends"] });
       queryClient.invalidateQueries({queryKey:["users"]});
-      toast.success("Friend removed succesfully");
-    },
+      toast.success("Friend removed successfully");    },
     onError: (error) => {
       toast.error(error.response?.data?.message || "Failed to remove friend");
     },
